@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Predator-Prey · Agents.jl</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link href="https://fonts.googleapis.com/css?family=Montserrat|Source+Code+Pro&amp;display=swap" rel="stylesheet" type="text/css"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.png" alt="Agents.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit">Agents.jl</span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><a class="tocitem" href="../../tutorial/">Tutorial</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../schelling/">Schelling&#39;s segregation model</a></li><li><a class="tocitem" href="../sir/">SIR model for the spread of COVID-19</a></li><li><a class="tocitem" href="../social_distancing/">Continuous space social distancing for COVID-19</a></li><li><a class="tocitem" href="../wealth_distribution/">Wealth distribution</a></li><li><a class="tocitem" href="../forest_fire/">Forest fire</a></li><li><a class="tocitem" href="../game_of_life_2D_CA/">Conway&#39;s game of life</a></li><li><a class="tocitem" href="../wright-fisher/">Wright-Fisher model of evolution</a></li><li><a class="tocitem" href="../HK/">Hegselmann-Krause opinion dynamics</a></li><li><a class="tocitem" href="../flock/">Flocking</a></li><li><a class="tocitem" href="../daisyworld/">Daisyworld</a></li><li class="is-active"><a class="tocitem" href>Predator-Prey</a><ul class="internal"><li><a class="tocitem" href="#Running-the-model-1"><span>Running the model</span></a></li></ul></li><li><a class="tocitem" href="../growing_bacteria/">Bacteria Growth</a></li></ul></li><li><a class="tocitem" href="../../api/">API</a></li><li><a class="tocitem" href="../../mesa/">Comparison against Mesa (Python)</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Predator-Prey</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Predator-Prey</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaDynamics/Agents.jl/blob/master/examples/predator_prey.jl" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Model-of-predator-prey-dynamics-1"><a class="docs-heading-anchor" href="#Model-of-predator-prey-dynamics-1">Model of predator-prey dynamics</a><a class="docs-heading-anchor-permalink" href="#Model-of-predator-prey-dynamics-1" title="Permalink"></a></h1><p>The predator-prey model emulates the population dynamics of predator and prey animals who live in a common ecosystem and compete over limited resources. This model is an agent-based analog to the classic <a href="https://en.wikipedia.org/wiki/Lotka%E2%80%93Volterra_equations">Lotka-Volterra</a> differential equation model. This example illustrates how to develop models with heterogeneous agents (sometimes referred to as a <em>mixed agent based model</em>).</p><p>The environment is a two dimensional grid containing sheep, wolves and grass. In the model, wolves eat sheep and sheep eat grass. Their populations will oscillate over time if the correct balance of resources is achieved. Without this balance however, a population may become extinct. For example, if wolf population becomes too large, they will deplete the sheep and subsequently die of starvation.</p><p>We will begin by loading the required packages and defining three subtypes of <code>AbstractAgent</code>: <code>Sheep</code>, Wolf, and <code>Grass</code>. All three agent types have <code>id</code> and <code>pos</code> properties, which is a requirement for all subtypes of <code>AbstractAgent</code> when they exist upon a <code>GridSpace</code>. Sheep and wolves have identical properties, but different behaviors as explained below. The property <code>energy</code> represents an animals current energy level. If the level drops below zero, the agent will die. Sheep and wolves reproduce asexually in this model, with a probability given by <code>reproduction_prob</code>. The property <code>Δenergy</code> controls how much energy is acquired after consuming a food source.</p><p>Grass is a replenishing resource that occupies every cell in the grid space. Grass can be consumed only if it is <code>fully_grown</code>. Once the grass has been consumed, it replenishes after a delay specified by the property <code>regrowth_time</code>. The property <code>countdown</code> tracks the delay between being consumed and the regrowth time.</p><pre><code class="language-">using Agents, AgentsPlots, StatsPlots
+using Random # hide
+pyplot() # hide
+
+mutable struct Sheep &lt;: AbstractAgent
+    id::Int
+    pos::Tuple{Int,Int}
+    energy::Float64
+    reproduction_prob::Float64
+    Δenergy::Float64
+end
+
+mutable struct Wolf &lt;: AbstractAgent
+    id::Int
+    pos::Tuple{Int,Int}
+    energy::Float64
+    reproduction_prob::Float64
+    Δenergy::Float64
+end
+
+mutable struct Grass &lt;: AbstractAgent
+    id::Int
+    pos::Tuple{Int,Int}
+    fully_grown::Bool
+    regrowth_time::Int
+    countdown::Int
+end</code></pre><p>The function <code>initialize_model</code> returns a new model containing sheep, wolves, and grass using a set of pre-defined values (which can be overwritten). The environment is a two dimensional grid space with <code>moore = true</code>, which enables animals to walk in all directions. Heterogeneous agents are specified in the model as a <code>Union</code>. Agents are scheduled <code>by_type</code>, which randomizes the order of agents with the constraint that agents of a particular type are scheduled consecutively.</p><pre><code class="language-julia">function initialize_model(;
+    n_sheep = 100,
+    n_wolves = 50,
+    dims = (20, 20),
+    regrowth_time = 30,
+    Δenergy_sheep = 4,
+    Δenergy_wolf = 20,
+    sheep_reproduce = 0.04,
+    wolf_reproduce = 0.05,
+)
+    space = GridSpace(dims, moore = true)
+    model =
+        ABM(Union{Sheep,Wolf,Grass}, space, scheduler = by_type(true, true), warn = false)
+    id = 0
+    for _ in 1:n_sheep
+        id += 1
+        energy = rand(1:(Δenergy_sheep * 2)) - 1
+        # Note that we must instantiate agents before adding them in a mixed-ABM
+        # to confirm their type.
+        sheep = Sheep(id, (0, 0), energy, sheep_reproduce, Δenergy_sheep)
+        add_agent!(sheep, model)
+    end
+    for _ in 1:n_wolves
+        id += 1
+        energy = rand(1:(Δenergy_wolf * 2)) - 1
+        wolf = Wolf(id, (0, 0), energy, wolf_reproduce, Δenergy_wolf)
+        add_agent!(wolf, model)
+    end
+    for n in nodes(model)
+        id += 1
+        fully_grown = rand(Bool)
+        countdown = fully_grown ? regrowth_time : rand(1:regrowth_time) - 1
+        grass = Grass(id, (0, 0), fully_grown, regrowth_time, countdown)
+        add_agent!(grass, n, model)
+    end
+    return model
+end</code></pre><pre><code class="language-none">initialize_model (generic function with 1 method)</code></pre><p>The function <code>agent_step!</code> is dispatched on each subtype in order to produce type-specific behavior. The <code>agent_step!</code> is similar for sheep and wolves: both lose 1 energy unit by moving to an adjacent cell and both consume a food source if available. If their energy level is below zero, an agent dies. Otherwise, the agent lives and reproduces with some probability.</p><pre><code class="language-">function agent_step!(sheep::Sheep, model)
+    move!(sheep, model)
+    sheep.energy -= 1
+    agents = get_node_agents(sheep.pos, model)
+    dinner = filter!(x -&gt; isa(x, Grass), agents)
+    eat!(sheep, dinner, model)
+    if sheep.energy &lt; 0
+        kill_agent!(sheep, model)
+        return
+    end
+    if rand() &lt;= sheep.reproduction_prob
+        reproduce!(sheep, model)
+    end
+end
+
+function agent_step!(wolf::Wolf, model)
+    move!(wolf, model)
+    wolf.energy -= 1
+    agents = get_node_agents(wolf.pos, model)
+    dinner = filter!(x -&gt; isa(x, Sheep), agents)
+    eat!(wolf, dinner, model)
+    if wolf.energy &lt; 0
+        kill_agent!(wolf, model)
+        return
+    end
+    if rand() &lt;= wolf.reproduction_prob
+        reproduce!(wolf, model)
+    end
+end</code></pre><p>The behavior of grass functions differently. If it is fully grown, it is consumable. Otherwise, it cannot be consumed until it regrows after a delay specified by <code>regrowth_time</code>.</p><pre><code class="language-">function agent_step!(grass::Grass, model)
+    if !grass.fully_grown
+        if grass.countdown &lt;= 0
+            grass.fully_grown = true
+            grass.countdown = grass.regrowth_time
+        else
+            grass.countdown -= 1
+        end
+    end
+end</code></pre><p>Sheep and wolves move to a random adjacent cell with the <code>move!</code> function.</p><pre><code class="language-julia">function move!(agent, model)
+    neighbors = node_neighbors(agent, model)
+    cell = rand(neighbors)
+    move_agent!(agent, cell, model)
+end</code></pre><pre><code class="language-none">move! (generic function with 1 method)</code></pre><p>Sheep and wolves have separate <code>eat!</code> functions. If a sheep eats grass, it will acquire additional energy and the grass will not be available for consumption until regrowth time has elapsed. If a wolf eats a sheep, the sheep dies and the wolf acquires more energy.</p><pre><code class="language-">function eat!(sheep::Sheep, grass_array, model)
+    isempty(grass_array) &amp;&amp; return
+    grass = grass_array[1]
+    if grass.fully_grown
+        sheep.energy += sheep.Δenergy
+        grass.fully_grown = false
+    end
+end
+
+function eat!(wolf::Wolf, sheep, model)
+    if !isempty(sheep)
+        dinner = rand(sheep)
+        kill_agent!(dinner, model)
+        wolf.energy += wolf.Δenergy
+    end
+end</code></pre><p>Sheep and wolves share a common reproduction method. Reproduction has a cost of 1/2 the current energy level of the parent. The offspring is an exact copy of the parent, with exception of <code>id</code>.</p><pre><code class="language-julia">function reproduce!(agent, model)
+    agent.energy /= 2
+    id = nextid(model)
+    A = typeof(agent)
+    offspring = A(id, agent.pos, agent.energy, agent.reproduction_prob, agent.Δenergy)
+    add_agent_pos!(offspring, model)
+    return
+end</code></pre><pre><code class="language-none">reproduce! (generic function with 1 method)</code></pre><h2 id="Running-the-model-1"><a class="docs-heading-anchor" href="#Running-the-model-1">Running the model</a><a class="docs-heading-anchor-permalink" href="#Running-the-model-1" title="Permalink"></a></h2><p>We will run the model for 500 steps and record the number of sheep, wolves and consumable grass patches after each step. First: initialize the model.</p><pre><code class="language-">Random.seed!(23182) # hide
+n_steps = 500
+model = initialize_model()</code></pre><p>To view our starting population, we can build an overview plot:</p><pre><code class="language-">offset(a::Sheep) = (0.2, 0.0)
+offset(a::Wolf) = (-0.2, 0.0)
+offset(a::Grass) = (0.0, 0.0)
+mshape(a::Sheep) = :circle
+mshape(a::Wolf) = :utriangle
+mshape(a::Grass) = :square
+mcolor(a::Sheep) = RGBA(1.0, 1.0, 1.0, 0.6)
+mcolor(a::Wolf) = RGBA(0.6, 0.6, 0.6, 0.8)
+mcolor(a::Grass) = cgrad([:brown, :green])[a.countdown / a.regrowth_time]
+plotabm(
+    model;
+    offset = offset,
+    am = mshape,
+    as = 15,
+    ac = mcolor,
+    scheduler = by_type((Grass, Sheep, Wolf), false),
+    grid = false,
+    size = (800, 600),
+    showaxis = false,
+    aspect_ratio = :equal,
+)</code></pre><p>Now, lets run the simulation and collect some data.</p><pre><code class="language-">sheep(a) = typeof(a) == Sheep
+wolves(a) = typeof(a) == Wolf
+grass(a) = typeof(a) == Grass &amp;&amp; a.fully_grown
+adata = [(sheep, count), (wolves, count), (grass, count)]
+results, _ = run!(model, agent_step!, n_steps; adata = adata)</code></pre><p>The plot shows the population dynamics over time. Initially, wolves become extinct because they consume the sheep too quickly. The few remaining sheep reproduce and gradually reach an equilibrium that can be supported by the amount of available grass.</p><pre><code class="language-">@df results plot(
+    :step,
+    :count_sheep,
+    grid = false,
+    xlabel = &quot;Step&quot;,
+    ylabel = &quot;Population&quot;,
+    label = &quot;Sheep&quot;,
+)
+@df results plot!(:step, :count_wolves, label = &quot;Wolves&quot;)
+@df results plot!(:step, :count_grass, label = &quot;Grass&quot;)</code></pre><p>Altering the input conditions, we now see a landscape where all three agents find an equilibrium.</p><pre><code class="language-">Random.seed!(7756) # hide
+model = initialize_model(
+    n_wolves = 20,
+    dims = (25, 25),
+    Δenergy_sheep = 5,
+    sheep_reproduce = 0.2,
+    wolf_reproduce = 0.08,
+)
+results, _ = run!(model, agent_step!, n_steps; adata = adata)
+@df results plot(
+    :step,
+    :count_sheep,
+    grid = false,
+    xlabel = &quot;Step&quot;,
+    ylabel = &quot;Population&quot;,
+    label = &quot;Sheep&quot;,
+)
+@df results plot!(:step, :count_wolves, label = &quot;Wolves&quot;)
+@df results plot!(:step, :count_grass, label = &quot;Grass&quot;)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../daisyworld/">« Daisyworld</a><a class="docs-footer-nextpage" href="../growing_bacteria/">Bacteria Growth »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Thursday 30 April 2020 11:57">Thursday 30 April 2020</span>. Using Julia version 1.4.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

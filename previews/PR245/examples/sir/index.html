@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>SIR model for the spread of COVID-19 · Agents.jl</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link href="https://fonts.googleapis.com/css?family=Montserrat|Source+Code+Pro&amp;display=swap" rel="stylesheet" type="text/css"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.png" alt="Agents.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit">Agents.jl</span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><a class="tocitem" href="../../tutorial/">Tutorial</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../schelling/">Schelling&#39;s segregation model</a></li><li class="is-active"><a class="tocitem" href>SIR model for the spread of COVID-19</a><ul class="internal"><li><a class="tocitem" href="#SIR-model-1"><span>SIR model</span></a></li><li><a class="tocitem" href="#Model-parameters-1"><span>Model parameters</span></a></li><li><a class="tocitem" href="#Making-the-model-in-Agents.jl-1"><span>Making the model in Agents.jl</span></a></li><li><a class="tocitem" href="#SIR-Stepping-functions-1"><span>SIR Stepping functions</span></a></li><li><a class="tocitem" href="#Example-animation-1"><span>Example animation</span></a></li><li><a class="tocitem" href="#Exponential-growth-1"><span>Exponential growth</span></a></li></ul></li><li><a class="tocitem" href="../social_distancing/">Continuous space social distancing for COVID-19</a></li><li><a class="tocitem" href="../wealth_distribution/">Wealth distribution</a></li><li><a class="tocitem" href="../forest_fire/">Forest fire</a></li><li><a class="tocitem" href="../game_of_life_2D_CA/">Conway&#39;s game of life</a></li><li><a class="tocitem" href="../wright-fisher/">Wright-Fisher model of evolution</a></li><li><a class="tocitem" href="../HK/">Hegselmann-Krause opinion dynamics</a></li><li><a class="tocitem" href="../flock/">Flocking</a></li><li><a class="tocitem" href="../daisyworld/">Daisyworld</a></li><li><a class="tocitem" href="../predator_prey/">Predator-Prey</a></li><li><a class="tocitem" href="../growing_bacteria/">Bacteria Growth</a></li></ul></li><li><a class="tocitem" href="../../api/">API</a></li><li><a class="tocitem" href="../../mesa/">Comparison against Mesa (Python)</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>SIR model for the spread of COVID-19</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>SIR model for the spread of COVID-19</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaDynamics/Agents.jl/blob/master/examples/sir.jl" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="SIR-model-for-the-spread-of-COVID-19-1"><a class="docs-heading-anchor" href="#SIR-model-for-the-spread-of-COVID-19-1">SIR model for the spread of COVID-19</a><a class="docs-heading-anchor-permalink" href="#SIR-model-for-the-spread-of-COVID-19-1" title="Permalink"></a></h1><p><img src="covid_evolution.gif" alt/></p><h2 id="SIR-model-1"><a class="docs-heading-anchor" href="#SIR-model-1">SIR model</a><a class="docs-heading-anchor-permalink" href="#SIR-model-1" title="Permalink"></a></h2><p>A SIR model tracks the ratio of Susceptible, Infected, and Recovered individuals within a population. Here we add one more category of individuals: those who are infected, but do not know it. Transmission rate for infected and diagnosed individuals is lower than infected and undetected. We also allow a fraction of recovered individuals to catch the disease again, meaning that recovering the disease does not bring full immunity.</p><h2 id="Model-parameters-1"><a class="docs-heading-anchor" href="#Model-parameters-1">Model parameters</a><a class="docs-heading-anchor-permalink" href="#Model-parameters-1" title="Permalink"></a></h2><p>Here are the model parameters, some of which have default values.</p><ul><li><code>Ns</code>: a vector of population sizes per city. The amount of cities is just <code>C=length(Ns)</code>.</li><li><code>β_und</code>: a vector for transmission probabilities β of the infected but undetected per city. Transmission probability is how many susceptible are infected per day by an infected individual. If social distancing is practiced, this number increases.</li><li><code>β_det</code>: an array for transmission probabilities β of the infected and detected per city. If hospitals are full, this number increases.</li><li><code>infection_period = 30</code>: how many days before a person dies or recovers.</li><li><code>detection_time = 14</code>: how many days before an infected person is detected.</li><li><code>death_rate = 0.02</code>: the probability that the individual will die after the <code>infection_period</code>.</li><li><code>reinfection_probability = 0.05</code>: The probability that a recovered person can get infected again.</li><li><code>migration_rates</code>: A matrix of migration probability per individual per day from one city to another.</li><li><code>Is = [zeros(C-1)..., 1]</code>: An array for initial number of infected but undetected people per city. This starts as only one infected individual in the last city.</li></ul><p>Notice that <code>Ns, β, Is</code> all need to have the same length, as they are numbers for each city. We&#39;ve tried to add values to the infection parameters similar to the ones you would hear on the news about COVID-19.</p><p>The good thing with Agent based models is that you could easily extend the model we implement here to also include age as an additional property of each agent. This makes ABMs flexible and suitable for research of virus spreading.</p><h2 id="Making-the-model-in-Agents.jl-1"><a class="docs-heading-anchor" href="#Making-the-model-in-Agents.jl-1">Making the model in Agents.jl</a><a class="docs-heading-anchor-permalink" href="#Making-the-model-in-Agents.jl-1" title="Permalink"></a></h2><p>We start by defining the <code>PoorSoul</code> agent type and the ABM</p><pre><code class="language-">using Agents, Random, DataFrames, LightGraphs
+using Distributions: Poisson, DiscreteNonParametric
+using DrWatson: @dict
+using Plots
+pyplot() # hide
+
+mutable struct PoorSoul &lt;: AbstractAgent
+    id::Int
+    pos::Int
+    days_infected::Int  # number of days since is infected
+    status::Symbol  # 1: S, 2: I, 3:R
+end
+
+function model_initiation(;
+    Ns,
+    migration_rates,
+    β_und,
+    β_det,
+    infection_period = 30,
+    reinfection_probability = 0.05,
+    detection_time = 14,
+    death_rate = 0.02,
+    Is = [zeros(Int, length(Ns) - 1)..., 1],
+    seed = 0,
+)
+
+    Random.seed!(seed)
+    @assert length(Ns) ==
+    length(Is) ==
+    length(β_und) ==
+    length(β_det) ==
+    size(migration_rates, 1) &quot;length of Ns, Is, and B, and number of rows/columns in migration_rates should be the same &quot;
+    @assert size(migration_rates, 1) == size(migration_rates, 2) &quot;migration_rates rates should be a square matrix&quot;
+
+    C = length(Ns)
+    # normalize migration_rates
+    migration_rates_sum = sum(migration_rates, dims = 2)
+    for c in 1:C
+        migration_rates[c, :] ./= migration_rates_sum[c]
+    end
+
+    properties = @dict(
+        Ns,
+        Is,
+        β_und,
+        β_det,
+        β_det,
+        migration_rates,
+        infection_period,
+        infection_period,
+        reinfection_probability,
+        detection_time,
+        C,
+        death_rate
+    )
+    space = GraphSpace(complete_digraph(C))
+    model = ABM(PoorSoul, space; properties = properties)
+
+    # Add initial individuals
+    for city in 1:C, n in 1:Ns[city]
+        ind = add_agent!(city, model, 0, :S) # Susceptible
+    end
+    # add infected individuals
+    for city in 1:C
+        inds = get_node_contents(city, model)
+        for n in 1:Is[city]
+            agent = model[inds[n]]
+            agent.status = :I # Infected
+            agent.days_infected = 1
+        end
+    end
+    return model
+end</code></pre><p>We will make a function that starts a model with <code>C</code> number of cities, and creates the other parameters automatically by attributing some random values to them. You could directly use the above constructor and specify all <code>Ns, β</code>, etc. but the following is convenient for this example</p><p>All cities are connected with each other, while it is more probable to travel from a city with small population into a city with large population.</p><pre><code class="language-">using LinearAlgebra: diagind
+
+function create_params(;
+    C,
+    max_travel_rate,
+    infection_period = 30,
+    reinfection_probability = 0.05,
+    detection_time = 14,
+    death_rate = 0.02,
+    Is = [zeros(Int, C - 1)..., 1],
+    seed = 19,
+)
+
+    Random.seed!(seed)
+    Ns = rand(50:5000, C)
+    β_und = rand(0.3:0.02:0.6, C)
+    β_det = β_und ./ 10
+
+    Random.seed!(seed)
+    migration_rates = zeros(C, C)
+    for c in 1:C
+        for c2 in 1:C
+            migration_rates[c, c2] = (Ns[c] + Ns[c2]) / Ns[c]
+        end
+    end
+    maxM = maximum(migration_rates)
+    migration_rates = (migration_rates .* max_travel_rate) ./ maxM
+    migration_rates[diagind(migration_rates)] .= 1.0
+
+    params = @dict(
+        Ns,
+        β_und,
+        β_det,
+        migration_rates,
+        infection_period,
+        reinfection_probability,
+        detection_time,
+        death_rate,
+        Is
+    )
+
+    return params
+end
+
+params = create_params(C = 8, max_travel_rate = 0.01)
+model = model_initiation(; params...)</code></pre><p>Alright, let&#39;s plot the cities as a graph to get an idea how the model &quot;looks like&quot;, using the function <a href="../../api/#AgentsPlots.plotabm"><code>plotabm</code></a>.</p><pre><code class="language-">using AgentsPlots
+
+plotargs = (node_size = 0.2, method = :circular, linealpha = 0.4)
+
+plotabm(model; plotargs...)</code></pre><p>The node size is proportional to the relative population of each city. In principle we could adjust the edge widths to be proportional with the migration rates, by doing:</p><pre><code class="language-">g = model.space.graph
+edgewidthsdict = Dict()
+for node in 1:nv(g)
+    nbs = neighbors(g, node)
+    for nb in nbs
+        edgewidthsdict[(node, nb)] = params[:migration_rates][node, nb]
+    end
+end
+
+edgewidthsf(s, d, w) = edgewidthsdict[(s, d)] * 250
+
+plotargs = merge(plotargs, (edgewidth = edgewidthsf,))
+
+plotabm(model; plotargs...)</code></pre><p>In the following we will be coloring each node according to how large percentage of the population is infected. So we create a function to give to <a href="../../api/#AgentsPlots.plotabm"><code>plotabm</code></a> as a second argument</p><pre><code class="language-">infected_fraction(x) = cgrad(:inferno)[count(a.status == :I for a in x) / length(x)]
+plotabm(model; ac = infected_fraction, plotargs...)</code></pre><p>Here this shows all nodes as black, since we haven&#39;t run the model yet. Let&#39;s change that!</p><h2 id="SIR-Stepping-functions-1"><a class="docs-heading-anchor" href="#SIR-Stepping-functions-1">SIR Stepping functions</a><a class="docs-heading-anchor-permalink" href="#SIR-Stepping-functions-1" title="Permalink"></a></h2><p>Now we define the functions for modelling the virus spread in time</p><pre><code class="language-julia">function agent_step!(agent, model)
+    migrate!(agent, model)
+    transmit!(agent, model)
+    update!(agent, model)
+    recover_or_die!(agent, model)
+end
+
+function migrate!(agent, model)
+    nodeid = agent.pos
+    d = DiscreteNonParametric(1:(model.C), model.migration_rates[nodeid, :])
+    m = rand(d)
+    if m ≠ nodeid
+        move_agent!(agent, m, model)
+    end
+end
+
+function transmit!(agent, model)
+    agent.status == :S &amp;&amp; return
+    rate = if agent.days_infected &lt; model.detection_time
+        model.β_und[agent.pos]
+    else
+        model.β_det[agent.pos]
+    end
+
+    d = Poisson(rate)
+    n = rand(d)
+    n == 0 &amp;&amp; return
+
+    for contactID in get_node_contents(agent, model)
+        contact = model[contactID]
+        if contact.status == :S ||
+           (contact.status == :R &amp;&amp; rand() ≤ model.reinfection_probability)
+            contact.status = :I
+            n -= 1
+            n == 0 &amp;&amp; return
+        end
+    end
+end
+
+update!(agent, model) = agent.status == :I &amp;&amp; (agent.days_infected += 1)
+
+function recover_or_die!(agent, model)
+    if agent.days_infected ≥ model.infection_period
+        if rand() ≤ model.death_rate
+            kill_agent!(agent, model)
+        else
+            agent.status = :R
+            agent.days_infected = 0
+        end
+    end
+end</code></pre><pre><code class="language-none">recover_or_die! (generic function with 1 method)</code></pre><h2 id="Example-animation-1"><a class="docs-heading-anchor" href="#Example-animation-1">Example animation</a><a class="docs-heading-anchor-permalink" href="#Example-animation-1" title="Permalink"></a></h2><pre><code class="language-">model = model_initiation(; params...)
+
+anim = @animate for i in 0:30
+    i &gt; 0 &amp;&amp; step!(model, agent_step!, 1)
+    p1 = plotabm(model; ac = infected_fraction, plotargs...)
+    title!(p1, &quot;Day $(i)&quot;)
+end
+
+gif(anim, &quot;covid_evolution.gif&quot;, fps = 5)</code></pre><p>One can really see &quot;explosive growth&quot; in this animation. Things look quite calm for a while and then suddenly supermarkets have no toilet paper anymore!</p><h2 id="Exponential-growth-1"><a class="docs-heading-anchor" href="#Exponential-growth-1">Exponential growth</a><a class="docs-heading-anchor-permalink" href="#Exponential-growth-1" title="Permalink"></a></h2><p>We now run the model and collect data. We define two useful functions for data collection:</p><pre><code class="language-julia">infected(x) = count(i == :I for i in x)
+recovered(x) = count(i == :R for i in x)</code></pre><pre><code class="language-none">recovered (generic function with 1 method)</code></pre><p>and then collect data</p><pre><code class="language-">model = model_initiation(; params...)
+
+to_collect = [(:status, f) for f in (infected, recovered, length)]
+data, _ = run!(model, agent_step!, 100; adata = to_collect)
+data[1:10, :]</code></pre><p>We now plot how quantities evolved in time to show the exponential growth of the virus</p><pre><code class="language-">N = sum(model.Ns) # Total initial population
+x = data.step
+p = plot(
+    x,
+    log10.(data[:, aggname(:status, infected)]),
+    label = &quot;infected&quot;,
+    xlabel = &quot;steps&quot;,
+    ylabel = &quot;log(count)&quot;,
+)
+plot!(p, x, log10.(data[:, aggname(:status, recovered)]), label = &quot;recovered&quot;)
+dead = log10.(N .- data[:, aggname(:status, length)])
+plot!(p, x, dead, label = &quot;dead&quot;)</code></pre><p>The exponential growth is clearly visible since the logarithm of the number of infected increases linearly, until everyone is infected.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../schelling/">« Schelling&#39;s segregation model</a><a class="docs-footer-nextpage" href="../social_distancing/">Continuous space social distancing for COVID-19 »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Thursday 30 April 2020 11:57">Thursday 30 April 2020</span>. Using Julia version 1.4.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

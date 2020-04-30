@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Flocking · Agents.jl</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link href="https://fonts.googleapis.com/css?family=Montserrat|Source+Code+Pro&amp;display=swap" rel="stylesheet" type="text/css"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.png" alt="Agents.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit">Agents.jl</span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><a class="tocitem" href="../../tutorial/">Tutorial</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../schelling/">Schelling&#39;s segregation model</a></li><li><a class="tocitem" href="../sir/">SIR model for the spread of COVID-19</a></li><li><a class="tocitem" href="../social_distancing/">Continuous space social distancing for COVID-19</a></li><li><a class="tocitem" href="../wealth_distribution/">Wealth distribution</a></li><li><a class="tocitem" href="../forest_fire/">Forest fire</a></li><li><a class="tocitem" href="../game_of_life_2D_CA/">Conway&#39;s game of life</a></li><li><a class="tocitem" href="../wright-fisher/">Wright-Fisher model of evolution</a></li><li><a class="tocitem" href="../HK/">Hegselmann-Krause opinion dynamics</a></li><li class="is-active"><a class="tocitem" href>Flocking</a><ul class="internal"><li><a class="tocitem" href="#Defining-the-core-structures-1"><span>Defining the core structures</span></a></li><li><a class="tocitem" href="#Defining-the-agent_step!-1"><span>Defining the agent_step!</span></a></li><li><a class="tocitem" href="#Running-the-model-1"><span>Running the model</span></a></li><li><a class="tocitem" href="#Plotting-the-birds-1"><span>Plotting the birds</span></a></li></ul></li><li><a class="tocitem" href="../daisyworld/">Daisyworld</a></li><li><a class="tocitem" href="../predator_prey/">Predator-Prey</a></li><li><a class="tocitem" href="../growing_bacteria/">Bacteria Growth</a></li></ul></li><li><a class="tocitem" href="../../api/">API</a></li><li><a class="tocitem" href="../../mesa/">Comparison against Mesa (Python)</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Flocking</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Flocking</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaDynamics/Agents.jl/blob/master/examples/flock.jl" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Flock-model-1"><a class="docs-heading-anchor" href="#Flock-model-1">Flock model</a><a class="docs-heading-anchor-permalink" href="#Flock-model-1" title="Permalink"></a></h1><p><img src="flock.gif" alt/></p><p>The flock model illustrates how flocking behavior can emerge when each bird follows three simple rules:</p><ul><li>maintain a minimum distance from other birds to avoid collision</li><li>fly towards the average position of neighbors</li><li>fly in the average direction of neighbors</li></ul><h2 id="Defining-the-core-structures-1"><a class="docs-heading-anchor" href="#Defining-the-core-structures-1">Defining the core structures</a><a class="docs-heading-anchor-permalink" href="#Defining-the-core-structures-1" title="Permalink"></a></h2><p>We begin by calling the required packages and defining an agent type representing a bird.</p><pre><code class="language-julia">using Agents, Random, LinearAlgebra
+
+mutable struct Bird &lt;: AbstractAgent
+    id::Int
+    pos::NTuple{2,Float64}
+    vel::NTuple{2,Float64}
+    speed::Float64
+    cohere_factor::Float64
+    separation::Float64
+    seperate_factor::Float64
+    match_factor::Float64
+    visual_distance::Float64
+end</code></pre><p>The fields <code>id</code> and <code>pos</code> are required for every agent. The field <code>vel</code> is required for using <a href="../../api/#Agents.move_agent!"><code>move_agent!</code></a> in <code>ContinuousSpace</code>. <code>speed</code> defines how far the bird travels in the direction defined by <code>vel</code> per <code>step</code>. <code>seperation</code> defines the minimum distance a bird must maintain from its neighbors. <code>visual_distance</code> refers to the distance a bird can see and defines a radius of neighboring birds. The contribution of each rule defined above recieves an importance weight: <code>cohere_factor</code> is the importance of maintaining the average position of neighbors, <code>match_factor</code> is the importance of matching the average trajectory of neighboring birds, and <code>seperate_factor</code> is the importance of maining the minimum distance from neighboring birds.</p><p>The function <code>initialize_model</code> generates birds and returns a model object using default values.</p><pre><code class="language-julia">function initialize_model(;
+    n_birds = 100,
+    speed = 1.0,
+    cohere_factor = 0.25,
+    separation = 4.0,
+    seperate_factor = 0.25,
+    match_factor = 0.01,
+    visual_distance = 5.0,
+    dims = (100, 100),
+)
+    space2d = ContinuousSpace(2; periodic = true, extend = dims)
+    model = ABM(Bird, space2d, scheduler = random_activation)
+    for _ in 1:n_birds
+        vel = Tuple(rand(2) * 2 .- 1)
+        add_agent!(
+            model,
+            vel,
+            speed,
+            cohere_factor,
+            separation,
+            seperate_factor,
+            match_factor,
+            visual_distance,
+        )
+    end
+    index!(model)
+    return model
+end</code></pre><pre><code class="language-none">initialize_model (generic function with 1 method)</code></pre><h2 id="Defining-the-agent_step!-1"><a class="docs-heading-anchor" href="#Defining-the-agent_step!-1">Defining the agent_step!</a><a class="docs-heading-anchor-permalink" href="#Defining-the-agent_step!-1" title="Permalink"></a></h2><p><code>agent_step!</code> is the primary function called for each step and computes velocity according to the three rules defined above.</p><pre><code class="language-julia">function agent_step!(bird, model)
+    # Obtain the ids of neibhors within the bird&#39;s visual distance
+    ids = space_neighbors(bird, model, bird.visual_distance)
+    # Compute velocity based on rules defined above
+    bird.vel =
+        (
+            bird.vel .+ cohere(bird, model, ids) .+ seperate(bird, model, ids) .+
+            match(bird, model, ids)
+        ) ./ 2
+    bird.vel = bird.vel ./ norm(bird.vel)
+    # Move bird according to new velocity and speed
+    move_agent!(bird, model, bird.speed)
+end
+
+distance(a1, a2) = sqrt(sum((a1.pos .- a2.pos) .^ 2))
+
+get_heading(a1, a2) = a1.pos .- a2.pos</code></pre><pre><code class="language-none">get_heading (generic function with 1 method)</code></pre><p><code>cohere</code> computes the average position of neighboring birds, weighted by importance</p><pre><code class="language-julia">function cohere(bird, model, ids)
+    N = max(length(ids), 1)
+    birds = model.agents
+    coherence = (0.0, 0.0)
+    for id in ids
+        coherence = coherence .+ get_heading(birds[id], bird)
+    end
+    return coherence ./ N .* bird.cohere_factor
+end</code></pre><pre><code class="language-none">cohere (generic function with 1 method)</code></pre><p><code>seperate</code> repells the bird away from neighboring birds</p><pre><code class="language-julia">function seperate(bird, model, ids)
+    seperation_vec = (0.0, 0.0)
+    N = max(length(ids), 1)
+    birds = model.agents
+    for id in ids
+        neighbor = birds[id]
+        if distance(bird, neighbor) &lt; bird.separation
+            seperation_vec = seperation_vec .- get_heading(neighbor, bird)
+        end
+    end
+    return seperation_vec ./ N .* bird.seperate_factor
+end</code></pre><pre><code class="language-none">seperate (generic function with 1 method)</code></pre><p><code>match</code> computes the average trajectory of neighboring birds, weighted by importance</p><pre><code class="language-julia">function match(bird, model, ids)
+    match_vector = (0.0, 0.0)
+    N = max(length(ids), 1)
+    birds = model.agents
+    for id in ids
+        match_vector = match_vector .+ birds[id].vel
+    end
+    return match_vector ./ N .* bird.match_factor
+end</code></pre><pre><code class="language-none">match (generic function with 1 method)</code></pre><h2 id="Running-the-model-1"><a class="docs-heading-anchor" href="#Running-the-model-1">Running the model</a><a class="docs-heading-anchor-permalink" href="#Running-the-model-1" title="Permalink"></a></h2><pre><code class="language-julia">n_steps = 500
+model = initialize_model()
+step!(model, agent_step!, n_steps)</code></pre><h2 id="Plotting-the-birds-1"><a class="docs-heading-anchor" href="#Plotting-the-birds-1">Plotting the birds</a><a class="docs-heading-anchor-permalink" href="#Plotting-the-birds-1" title="Permalink"></a></h2><p>The great thing about <a href="../../api/#AgentsPlots.plotabm"><code>plotabm</code></a> is its flexibility. We can incorporate the direction of the birds when plotting them, by making the &quot;marker&quot; function <code>am</code> create a <code>Shape</code>: a triangle with same orientation as the bird&#39;s velocity. It is as simple as defining the following function:</p><pre><code class="language-julia">function bird_triangle(b::Bird)
+    φ = atan(b.vel[2], b.vel[1])
+    xs = [(i ∈ (0, 3) ? 2 : 1) * cos(i * 2π / 3 + φ) for i in 0:3]
+    ys = [(i ∈ (0, 3) ? 2 : 1) * sin(i * 2π / 3 + φ) for i in 0:3]
+    Shape(xs, ys)
+end</code></pre><pre><code class="language-none">bird_triangle (generic function with 1 method)</code></pre><p>And here is the animation</p><pre><code class="language-">using AgentsPlots, Plots
+pyplot() # hide
+Random.seed!(23182) # hide
+model = initialize_model()
+e = model.space.extend
+anim = @animate for i in 0:100
+    i &gt; 0 &amp;&amp; step!(model, agent_step!, 1)
+    p1 = plotabm(
+        model;
+        am = bird_triangle,
+        as = 15,
+        showaxis = false,
+        grid = false,
+        xlims = (0, e[1]),
+        ylims = (0, e[2]),
+    )
+    title!(p1, &quot;step $(i)&quot;)
+end
+gif(anim, &quot;flock.gif&quot;, fps = 30)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../HK/">« Hegselmann-Krause opinion dynamics</a><a class="docs-footer-nextpage" href="../daisyworld/">Daisyworld »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Thursday 30 April 2020 11:57">Thursday 30 April 2020</span>. Using Julia version 1.4.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
