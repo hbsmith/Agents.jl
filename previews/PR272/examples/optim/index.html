@@ -1,82 +1,156 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>BlackBoxOptim · Agents.jl</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="https://fonts.googleapis.com/css?family=Montserrat|Source+Code+Pro&amp;display=swap" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.png" alt="Agents.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit">Agents.jl</span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><a class="tocitem" href="../../tutorial/">Tutorial</a></li><li><input class="collapse-toggle" id="menuitem-3" type="checkbox"/><label class="tocitem" for="menuitem-3"><span class="docs-label">Examples</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../schelling/">Schelling&#39;s segregation model</a></li><li><a class="tocitem" href="../sir/">SIR model for the spread of COVID-19</a></li><li><a class="tocitem" href="../social_distancing/">Continuous space social distancing for COVID-19</a></li><li><a class="tocitem" href="../wealth_distribution/">Wealth distribution</a></li><li><a class="tocitem" href="../forest_fire/">Forest fire</a></li><li><a class="tocitem" href="../game_of_life_2D_CA/">Conway&#39;s game of life</a></li><li><a class="tocitem" href="../wright-fisher/">Wright-Fisher model of evolution</a></li><li><a class="tocitem" href="../hk/">Hegselmann-Krause opinion dynamics</a></li><li><a class="tocitem" href="../flock/">Flocking</a></li><li><a class="tocitem" href="../daisyworld/">Daisyworld</a></li><li><a class="tocitem" href="../predator_prey/">Predator-Prey</a></li><li><a class="tocitem" href="../growing_bacteria/">Bacteria Growth</a></li></ul></li><li><a class="tocitem" href="../../models/">Predefined Models</a></li><li><a class="tocitem" href="../../api/">API</a></li><li><a class="tocitem" href="../../interact/">Interactive application</a></li><li><input class="collapse-toggle" id="menuitem-7" type="checkbox" checked/><label class="tocitem" for="menuitem-7"><span class="docs-label">Ecosystem Integration</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../diffeq/">DifferentialEquations.jl</a></li><li class="is-active"><a class="tocitem" href>BlackBoxOptim</a></li></ul></li><li><a class="tocitem" href="../../mesa/">Comparison against Mesa (Python)</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Ecosystem Integration</a></li><li class="is-active"><a href>BlackBoxOptim</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>BlackBoxOptim</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaDynamics/Agents.jl/blob/master/examples/optim.jl" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Optimizing-agent-based-models"><a class="docs-heading-anchor" href="#Optimizing-agent-based-models">Optimizing agent-based models</a><a id="Optimizing-agent-based-models-1"></a><a class="docs-heading-anchor-permalink" href="#Optimizing-agent-based-models" title="Permalink"></a></h1><p>Agent-based models (ABMs) are computationally more expensive than analytical models, and can have many parameters. Sometimes we need to fine-tune a model&#39;s parameters to a specific outcome. Brute-force algorithms can take too long for testing each parameter setting. Even if it was feasbile to run the model for every parameter setting, it would not be enough because ABMs are stochastic and the effect of a parameter setting should be derived from running the model several times and taking its average behavior.</p><p>Here we show how to use the evolutionary algorithms in <a href="https://github.com/robertfeldt/BlackBoxOptim.jl">BlackBoxOptim.jl</a> with Agents.j</p><p>We optimize the parameters of an epidemiological model (SIR). We explain it in detail in the <a href="../sir/#SIR-model-for-the-spread-of-COVID-19">SIR model for the spread of COVID-19</a>. Here, we just import it.</p><pre><code class="language-">include(&quot;siroptim.jl&quot;)</code></pre><p>Now we need to define a cost function. The cost function takes as agruments the model parameters that we want to tune, here migration rate, death rate, transmission rate when an infected person has been (not) detected (<code>β_det</code>, <code>β_und</code>), infection period, reinfection probability, and time until the infection is detected. The function returns one or more numbers as the objective to be minimized. Here, we try to minimize the number of infected people after 50 days.</p><pre><code class="language-">using BlackBoxOptim
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>BlackBoxOptim · Agents.jl</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="https://fonts.googleapis.com/css?family=Montserrat|Source+Code+Pro&amp;display=swap" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.png" alt="Agents.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit">Agents.jl</span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><a class="tocitem" href="../../tutorial/">Tutorial</a></li><li><input class="collapse-toggle" id="menuitem-3" type="checkbox"/><label class="tocitem" for="menuitem-3"><span class="docs-label">Examples</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../schelling/">Schelling&#39;s segregation model</a></li><li><a class="tocitem" href="../sir/">SIR model for the spread of COVID-19</a></li><li><a class="tocitem" href="../social_distancing/">Continuous space social distancing for COVID-19</a></li><li><a class="tocitem" href="../wealth_distribution/">Wealth distribution</a></li><li><a class="tocitem" href="../forest_fire/">Forest fire</a></li><li><a class="tocitem" href="../game_of_life_2D_CA/">Conway&#39;s game of life</a></li><li><a class="tocitem" href="../wright-fisher/">Wright-Fisher model of evolution</a></li><li><a class="tocitem" href="../hk/">Hegselmann-Krause opinion dynamics</a></li><li><a class="tocitem" href="../flock/">Flocking</a></li><li><a class="tocitem" href="../daisyworld/">Daisyworld</a></li><li><a class="tocitem" href="../predator_prey/">Predator-Prey</a></li><li><a class="tocitem" href="../growing_bacteria/">Bacteria Growth</a></li></ul></li><li><a class="tocitem" href="../../models/">Predefined Models</a></li><li><a class="tocitem" href="../../api/">API</a></li><li><a class="tocitem" href="../../interact/">Interactive application</a></li><li><input class="collapse-toggle" id="menuitem-7" type="checkbox" checked/><label class="tocitem" for="menuitem-7"><span class="docs-label">Ecosystem Integration</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../diffeq/">DifferentialEquations.jl</a></li><li class="is-active"><a class="tocitem" href>BlackBoxOptim</a></li></ul></li><li><a class="tocitem" href="../../mesa/">Comparison against Mesa (Python)</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Ecosystem Integration</a></li><li class="is-active"><a href>BlackBoxOptim</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>BlackBoxOptim</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaDynamics/Agents.jl/blob/master/examples/optim.jl" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Optimizing-agent-based-models"><a class="docs-heading-anchor" href="#Optimizing-agent-based-models">Optimizing agent-based models</a><a id="Optimizing-agent-based-models-1"></a><a class="docs-heading-anchor-permalink" href="#Optimizing-agent-based-models" title="Permalink"></a></h1><p>Agent-based models (ABMs) are computationally more expensive than analytical models, and can have many parameters. Sometimes we need to fine-tune a model&#39;s parameters to a specific outcome. Brute-force algorithms can take too long for testing each parameter setting. Even if it was feasbile to run the model for every parameter setting, it would not be enough because ABMs are stochastic and the effect of a parameter setting should be derived from running the model several times and taking its average behavior.</p><p>Here we show how to use the evolutionary algorithms in <a href="https://github.com/robertfeldt/BlackBoxOptim.jl">BlackBoxOptim.jl</a> with Agents.j</p><p>We optimize the parameters of an epidemiological model (SIR). We explain it in detail in the <a href="../sir/#SIR-model-for-the-spread-of-COVID-19">SIR model for the spread of COVID-19</a>. Here, we just import it.</p><pre><code class="language-">include(&quot;siroptim.jl&quot;)</code></pre><p>Now we need to define a cost function. The cost function takes as agruments the model parameters that we want to tune, here migration rate, death rate, transmission rate when an infected person has been (not) detected (<code>β_det</code>, <code>β_und</code>), infection period, reinfection probability, and time until the infection is detected. The function returns one or more numbers as the objective to be minimized. Here, we try to minimize the number of infected people after 50 days.</p><pre><code class="language-julia">using BlackBoxOptim
 import Statistics: mean
 
 function cost(x)
-  migration_rate, death_rate, β_det, β_und, infection_period, reinfection_probability, detection_time = x
-  C = 3
-  params = create_params(C=C,
-  Ns=[500 for i in 1:C],
-  β_det=[β_det for i in 1:C],
-  migration_rate=migration_rate,
-  infection_period = infection_period,
-  reinfection_probability = reinfection_probability,
-  detection_time = detection_time,
-  death_rate = death_rate,
-  Is = ones(Int, C),
-  β_und = [β_und for i in 1:C]
-  )
+    migration_rate,
+    death_rate,
+    β_det,
+    β_und,
+    infection_period,
+    reinfection_probability,
+    detection_time = x
+    C = 3
+    params = create_params(
+        C = C,
+        Ns = [500 for i in 1:C],
+        β_det = [β_det for i in 1:C],
+        migration_rate = migration_rate,
+        infection_period = infection_period,
+        reinfection_probability = reinfection_probability,
+        detection_time = detection_time,
+        death_rate = death_rate,
+        Is = ones(Int, C),
+        β_und = [β_und for i in 1:C],
+    )
 
-  model = model_initiation(; params...)
+    model = model_initiation(; params...)
 
-  infected_fraction(model) = count(a.status == :I for a in values(model.agents)) / nagents(model)
-  _, data = run!(model, agent_step!, 50; mdata = [infected_fraction], when_model=[50], replicates=10)
+    infected_fraction(model) =
+        count(a.status == :I for a in values(model.agents)) / nagents(model)
+    _, data = run!(
+        model,
+        agent_step!,
+        50;
+        mdata = [infected_fraction],
+        when_model = [50],
+        replicates = 10,
+    )
 
-  return mean(data.infected_fraction)
-end</code></pre><p>Because ABMs are stochastic, we run 10 replicates and take the average fraction of infected people after 50 days</p><p>We can now test the function cost with some reasonable parameter values.</p><pre><code class="language-">Random.seed!(10)
+    return mean(data.infected_fraction)
+end</code></pre><pre class="documenter-example-output">cost (generic function with 1 method)</pre><p>Because ABMs are stochastic, we run 10 replicates and take the average fraction of infected people after 50 days</p><p>We can now test the function cost with some reasonable parameter values.</p><pre><code class="language-">Random.seed!(10)
 
-migration_rate=0.2
-death_rate=0.1
+migration_rate = 0.2
+death_rate = 0.1
 β_det = 0.05
 β_und = 0.3
 infection_period = 10
 reinfection_probability = 0.1
 detection_time = 5
-x0 = [migration_rate, death_rate, β_det, β_und, infection_period, reinfection_probability, detection_time]
-cost(x0)</code></pre><p>After 50 days, 94% of the population is infected.</p><p>We let the optimization algorithm change parameters to minimize the number of infected individuals. Note that we can limit the allowed range for each parameter separately.</p><pre><code class="language-">result = bboptimize(cost, SearchRange = [(0.0, 1.0), (0.0, 1.0), (0.0, 1.0), (0.0, 1.0), (7.0, 13.0),(0.0, 1.0),(2.0, 6.0)], NumDimensions = 7, MaxTime=20)
-best_fitness(result)</code></pre><p>The fraction of the infected is down to 11%. Parameter values that give this result are:</p><pre><code class="language-">best_candidate(result)</code></pre><p>We notice that the death rate is 96%, and transmission rates have also increased, while reinfection probability is much smaller. When all the infected indiduals die, infection doesn&#39;t transmit. Let&#39;s modify the cost function to also keep the mortality rate low.</p><p>This can be tested by running the model with the new parameter values:</p><pre><code class="language-">migration_rate, death_rate, β_det, β_und, infection_period, reinfection_probability, detection_time = best_candidate(result)
+x0 = [
+    migration_rate,
+    death_rate,
+    β_det,
+    β_und,
+    infection_period,
+    reinfection_probability,
+    detection_time,
+]
+cost(x0)</code></pre><p>After 50 days, 94% of the population is infected.</p><p>We let the optimization algorithm change parameters to minimize the number of infected individuals. Note that we can limit the allowed range for each parameter separately.</p><pre><code class="language-">result = bboptimize(
+    cost,
+    SearchRange = [
+        (0.0, 1.0),
+        (0.0, 1.0),
+        (0.0, 1.0),
+        (0.0, 1.0),
+        (7.0, 13.0),
+        (0.0, 1.0),
+        (2.0, 6.0),
+    ],
+    NumDimensions = 7,
+    MaxTime = 20,
+)
+best_fitness(result)</code></pre><p>The fraction of the infected is down to 11%. Parameter values that give this result are:</p><pre><code class="language-">best_candidate(result)</code></pre><p>We notice that the death rate is 96%, and transmission rates have also increased, while reinfection probability is much smaller. When all the infected indiduals die, infection doesn&#39;t transmit. Let&#39;s modify the cost function to also keep the mortality rate low.</p><p>This can be tested by running the model with the new parameter values:</p><pre><code class="language-">migration_rate,
+death_rate,
+β_det,
+β_und,
+infection_period,
+reinfection_probability,
+detection_time = best_candidate(result)
 C = 3
-params = create_params(C=C,
-Ns=[500 for i in 1:C],
-β_det=[β_det for i in 1:C],
-migration_rate=migration_rate,
-infection_period = infection_period,
-reinfection_probability = reinfection_probability,
-detection_time = detection_time,
-death_rate = death_rate,
-Is = ones(Int, C),
-β_und = [β_und for i in 1:C]
+params = create_params(
+    C = C,
+    Ns = [500 for i in 1:C],
+    β_det = [β_det for i in 1:C],
+    migration_rate = migration_rate,
+    infection_period = infection_period,
+    reinfection_probability = reinfection_probability,
+    detection_time = detection_time,
+    death_rate = death_rate,
+    Is = ones(Int, C),
+    β_und = [β_und for i in 1:C],
 )
 
 Random.seed!(0)
 model = model_initiation(; params...)
 nagents(model)
 
-_ , data = run!(model, agent_step!, 50; mdata = [nagents], when_model=[50], replicates = 10)
+_, data =
+    run!(model, agent_step!, 50; mdata = [nagents], when_model = [50], replicates = 10)
 
 mean(data.nagents)</code></pre><p>About 10% of the population dies with these parameters.</p><p>We can define a multi-objective cost function that minimizes the number of infected and deaths.</p><pre><code class="language-julia">function cost_multi(x)
-  migration_rate, death_rate, β_det, β_und, infection_period, reinfection_probability, detection_time = x
-  C = 3
-  params = create_params(C=C,
-    Ns=[500 for i in 1:C],
-    β_det=[β_det for i in 1:C],
-    migration_rate=migration_rate,
-    infection_period = infection_period,
-    reinfection_probability = reinfection_probability,
-    detection_time = detection_time,
-    death_rate = death_rate,
-    Is = ones(Int, C),
-    β_und = [β_und for i in 1:C]
-  )
+    migration_rate,
+    death_rate,
+    β_det,
+    β_und,
+    infection_period,
+    reinfection_probability,
+    detection_time = x
+    C = 3
+    params = create_params(
+        C = C,
+        Ns = [500 for i in 1:C],
+        β_det = [β_det for i in 1:C],
+        migration_rate = migration_rate,
+        infection_period = infection_period,
+        reinfection_probability = reinfection_probability,
+        detection_time = detection_time,
+        death_rate = death_rate,
+        Is = ones(Int, C),
+        β_und = [β_und for i in 1:C],
+    )
 
-  model = model_initiation(; params...)
-  initial_size = nagents(model)
+    model = model_initiation(; params...)
+    initial_size = nagents(model)
 
-  infected_fraction(model) = count(a.status == :I for a in values(model.agents)) / nagents(model)
-  n_fraction(model) = -1.0 * nagents(model)/initial_size
-  _, data = run!(model, agent_step!, 50; mdata = [infected_fraction, n_fraction], when_model=[50], replicates=10)
+    infected_fraction(model) =
+        count(a.status == :I for a in values(model.agents)) / nagents(model)
+    n_fraction(model) = -1.0 * nagents(model) / initial_size
+    _, data = run!(
+        model,
+        agent_step!,
+        50;
+        mdata = [infected_fraction, n_fraction],
+        when_model = [50],
+        replicates = 10,
+    )
 
-  return mean(data.infected_fraction), mean(data.n_fraction)
-end</code></pre><pre class="documenter-example-output">cost_multi (generic function with 1 method)</pre><p>The cost of our initial parameter values is high: most of the population (96%) is infected and 22% die.</p><pre><code class="language-">cost_multi(x0)</code></pre><p>Let&#39;s minimize this multi-objective cost function. We need to define the optimization method for multi-objective functions:</p><pre><code class="language-">result = bboptimize(cost_multi, Method=:borg_moea, FitnessScheme=ParetoFitnessScheme{2}(is_minimizing=true), SearchRange = [(0.0, 1.0), (0.0, 1.0), (0.0, 1.0), (0.0, 1.0), (7.0, 13.0),(0.0, 1.0),(2.0, 6.0)], NumDimensions = 7, MaxTime=55)</code></pre><p>With the optimized parameters, about 0.3% of the population dies and 0.02% are infected:</p><pre><code class="language-">best_fitness(result)</code></pre><p>And the tuned parameters are</p><pre><code class="language-">best_candidate(result)</code></pre><p>The algorithm managed to minimize the the number of infected and deaths while still increasing death rate to 42%, reinfection probability to 53%, and migration rates to 33%. The most important change decreasing the transmission rate when individuals are infected and undetected (from 30% to 0.2%).</p><p>Let&#39;s reduce death rate and check the cost:</p><pre><code class="language-">x = best_candidate(result)
+    return mean(data.infected_fraction), mean(data.n_fraction)
+end</code></pre><pre class="documenter-example-output">cost_multi (generic function with 1 method)</pre><p>The cost of our initial parameter values is high: most of the population (96%) is infected and 22% die.</p><pre><code class="language-">cost_multi(x0)</code></pre><p>Let&#39;s minimize this multi-objective cost function. We need to define the optimization method for multi-objective functions:</p><pre><code class="language-">result = bboptimize(
+    cost_multi,
+    Method = :borg_moea,
+    FitnessScheme = ParetoFitnessScheme{2}(is_minimizing = true),
+    SearchRange = [
+        (0.0, 1.0),
+        (0.0, 1.0),
+        (0.0, 1.0),
+        (0.0, 1.0),
+        (7.0, 13.0),
+        (0.0, 1.0),
+        (2.0, 6.0),
+    ],
+    NumDimensions = 7,
+    MaxTime = 55,
+)</code></pre><p>With the optimized parameters, about 0.3% of the population dies and 0.02% are infected:</p><pre><code class="language-">best_fitness(result)</code></pre><p>And the tuned parameters are</p><pre><code class="language-">best_candidate(result)</code></pre><p>The algorithm managed to minimize the the number of infected and deaths while still increasing death rate to 42%, reinfection probability to 53%, and migration rates to 33%. The most important change decreasing the transmission rate when individuals are infected and undetected (from 30% to 0.2%).</p><p>Let&#39;s reduce death rate and check the cost:</p><pre><code class="language-">x = best_candidate(result)
 x[2] = 0.02
-cost_multi(x)</code></pre><p>The fraction of infected increases to 0.04%. This is an interesting result, confirming the importance of social distancing. Without changing infection period and travel rate, even by increasing the transmission rate of the infected and detected (from 5% to 20%), by just decreasing the transmission rate of the undetected individuals, death rate drops 73 times and the number of infected decreases from 96% of the population to 3%.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../diffeq/">« DifferentialEquations.jl</a><a class="docs-footer-nextpage" href="../../mesa/">Comparison against Mesa (Python) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Wednesday 12 August 2020 13:22">Wednesday 12 August 2020</span>. Using Julia version 1.5.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+cost_multi(x)</code></pre><p>The fraction of infected increases to 0.04%. This is an interesting result, confirming the importance of social distancing. Without changing infection period and travel rate, even by increasing the transmission rate of the infected and detected (from 5% to 20%), by just decreasing the transmission rate of the undetected individuals, death rate drops 73 times and the number of infected decreases from 96% of the population to 3%.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../diffeq/">« DifferentialEquations.jl</a><a class="docs-footer-nextpage" href="../../mesa/">Comparison against Mesa (Python) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Wednesday 12 August 2020 14:49">Wednesday 12 August 2020</span>. Using Julia version 1.5.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
