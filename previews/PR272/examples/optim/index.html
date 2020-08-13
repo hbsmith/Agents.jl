@@ -3,31 +3,20 @@
 using Statistics: mean
 
 function cost(x)
-    migration_rate,
-    death_rate,
-    β_det,
-    β_und,
-    infection_period,
-    reinfection_probability,
-    detection_time = x
-    C = 3
-    params = create_params(
-        C = C,
-        Ns = [500 for i in 1:C],
-        β_det = [β_det for i in 1:C],
-        migration_rate = migration_rate,
-        infection_period = infection_period,
-        reinfection_probability = reinfection_probability,
-        detection_time = detection_time,
-        death_rate = death_rate,
-        Is = ones(Int, C),
-        β_und = [β_und for i in 1:C],
+    model = model_initiation(;
+        Ns = [500, 500, 500],
+        migration_rate = x[1],
+        death_rate = x[2],
+        β_det = x[3],
+        β_und = x[4],
+        infection_period = x[5],
+        reinfection_probability = x[6],
+        detection_time = x[7],
     )
 
-    model = model_initiation(; params...)
-
     infected_fraction(model) =
-        count(a.status == :I for a in values(model.agents)) / nagents(model)
+        count(a.status == :I for a in allagents(model)) / nagents(model)
+
     _, data = run!(
         model,
         agent_step!,
@@ -40,21 +29,14 @@ function cost(x)
     return mean(data.infected_fraction)
 end</code></pre><pre class="documenter-example-output">cost (generic function with 1 method)</pre><p>Because ABMs are stochastic, we run 10 replicates and take the average fraction of infected people after 50 days</p><p>We can now test the function cost with some reasonable parameter values.</p><pre><code class="language-julia">Random.seed!(10)
 
-migration_rate = 0.2
-death_rate = 0.1
-β_det = 0.05
-β_und = 0.3
-infection_period = 10
-reinfection_probability = 0.1
-detection_time = 5
 x0 = [
-    migration_rate,
-    death_rate,
-    β_det,
-    β_und,
-    infection_period,
-    reinfection_probability,
-    detection_time,
+    0.2,  # migration_rate = 0.2,
+    0.1,  # death_rate = 0.1,
+    0.05, # β_det = 0.05,
+    0.3,  # β_und = 0.3,
+    10,   # infection_period = 10,
+    0.1,  # reinfection_probability = 0.1,
+    5,    # detection_time = 5,
 ]
 cost(x0)</code></pre><pre class="documenter-example-output">0.9348851444455306</pre><p>After 50 days, 94% of the population is infected.</p><p>We let the optimization algorithm change parameters to minimize the number of infected individuals. Note that we can limit the allowed range for each parameter separately.</p><pre><code class="language-julia">result = bboptimize(
     cost,
@@ -77,62 +59,42 @@ best_fitness(result)</code></pre><pre class="documenter-example-output">0.114005
   0.1247861896135058
  12.633440015975424
   0.0019240394102884694
-  3.8685012358501547</pre><p>We notice that the death rate is 96%, and transmission rates have also increased, while reinfection probability is much smaller. When all the infected indiduals die, infection doesn&#39;t transmit. Let&#39;s modify the cost function to also keep the mortality rate low.</p><p>This can be tested by running the model with the new parameter values:</p><pre><code class="language-julia">migration_rate,
-death_rate,
-β_det,
-β_und,
-infection_period,
-reinfection_probability,
-detection_time = best_candidate(result)
-C = 3
-params = create_params(
-    C = C,
-    Ns = [500 for i in 1:C],
-    β_det = [β_det for i in 1:C],
-    migration_rate = migration_rate,
-    infection_period = infection_period,
-    reinfection_probability = reinfection_probability,
-    detection_time = detection_time,
-    death_rate = death_rate,
-    Is = ones(Int, C),
-    β_und = [β_und for i in 1:C],
-)
+  3.8685012358501547</pre><p>We notice that the death rate is 96%, and transmission rates have also increased, while reinfection probability is much smaller. When all the infected indiduals die, infection doesn&#39;t transmit. Let&#39;s modify the cost function to also keep the mortality rate low.</p><p>This can be tested by running the model with the new parameter values:</p><pre><code class="language-julia">x = best_candidate(result)
 
 Random.seed!(0)
-model = model_initiation(; params...)
-nagents(model)
+
+model = model_initiation(;
+    Ns = [500, 500, 500],
+    migration_rate = x[1],
+    death_rate = x[2],
+    β_det = x[3],
+    β_und = x[4],
+    infection_period = x[5],
+    reinfection_probability = x[6],
+    detection_time = x[7],
+)
 
 _, data =
     run!(model, agent_step!, 50; mdata = [nagents], when_model = [50], replicates = 10)
 
 mean(data.nagents)</code></pre><pre class="documenter-example-output">1358.9</pre><p>About 10% of the population dies with these parameters.</p><p>We can define a multi-objective cost function that minimizes the number of infected and deaths.</p><pre><code class="language-julia">function cost_multi(x)
-    migration_rate,
-    death_rate,
-    β_det,
-    β_und,
-    infection_period,
-    reinfection_probability,
-    detection_time = x
-    C = 3
-    params = create_params(
-        C = C,
-        Ns = [500 for i in 1:C],
-        β_det = [β_det for i in 1:C],
-        migration_rate = migration_rate,
-        infection_period = infection_period,
-        reinfection_probability = reinfection_probability,
-        detection_time = detection_time,
-        death_rate = death_rate,
-        Is = ones(Int, C),
-        β_und = [β_und for i in 1:C],
+    model = model_initiation(;
+        Ns = [500, 500, 500],
+        migration_rate = x[1],
+        death_rate = x[2],
+        β_det = x[3],
+        β_und = x[4],
+        infection_period = x[5],
+        reinfection_probability = x[6],
+        detection_time = x[7],
     )
 
-    model = model_initiation(; params...)
     initial_size = nagents(model)
 
     infected_fraction(model) =
-        count(a.status == :I for a in values(model.agents)) / nagents(model)
+        count(a.status == :I for a in allagents(model)) / nagents(model)
     n_fraction(model) = -1.0 * nagents(model) / initial_size
+
     _, data = run!(
         model,
         agent_step!,
@@ -158,7 +120,7 @@ end</code></pre><pre class="documenter-example-output">cost_multi (generic funct
     ],
     NumDimensions = 7,
     MaxTime = 55,
-)</code></pre><pre class="documenter-example-output">BlackBoxOptim.OptimizationResults(&quot;borg_moea&quot;, &quot;Max time (55.0 s) reached&quot;, 1, 1.597310989637926e9, 63.57025480270386, BlackBoxOptim.DictChain{Symbol,Any}[BlackBoxOptim.DictChain{Symbol,Any}[Dict{Symbol,Any}(:RngSeed =&gt; 774292,:NumDimensions =&gt; 7,:MaxTime =&gt; 55.0,:SearchRange =&gt; [(0.0, 1.0), (0.0, 1.0), (0.0, 1.0), (0.0, 1.0), (7.0, 13.0), (0.0, 1.0), (2.0, 6.0)],:Method =&gt; :borg_moea,:FitnessScheme =&gt; BlackBoxOptim.ParetoFitnessScheme{2,Float64,true,typeof(sum)}(sum),:MaxFuncEvals =&gt; 0,:MaxSteps =&gt; 0),Dict{Symbol,Any}()],Dict{Symbol,Any}(:FitnessScheme =&gt; BlackBoxOptim.ScalarFitnessScheme{true}(),:NumDimensions =&gt; :NotSpecified,:PopulationSize =&gt; 50,:MaxTime =&gt; 0.0,:SearchRange =&gt; (-1.0, 1.0),:Method =&gt; :adaptive_de_rand_1_bin_radiuslimited,:MaxNumStepsWithoutFuncEvals =&gt; 100,:RngSeed =&gt; 1234,:MaxFuncEvals =&gt; 0,:SaveTrace =&gt; false…)], 51, BlackBoxOptim.EpsBoxDominanceFitnessScheme{2,Float64,true,typeof(sum)}([0.1, 0.1], sum), BlackBoxOptim.EpsBoxArchiveOutput{2,Float64,BlackBoxOptim.EpsBoxDominanceFitnessScheme{2,Float64,true,typeof(sum)}}((0.0002010274938093588, -0.9970666666666664), [0.33047213757587385, 0.4162200712338514, 0.19614410158370602, 0.001988769978834718, 7.602018447426495, 0.5364418966125286, 4.025083782376916], BlackBoxOptim.FrontierIndividualWrapper{Tuple{Float64,Float64},BlackBoxOptim.IndexedTupleFitness{2,Float64}}[BlackBoxOptim.FrontierIndividualWrapper{Tuple{Float64,Float64},BlackBoxOptim.IndexedTupleFitness{2,Float64}}(BlackBoxOptim.FrontierIndividual{BlackBoxOptim.IndexedTupleFitness{2,Float64}}(BlackBoxOptim.IndexedTupleFitness{2,Float64}((0.0002010274938093588, -0.9970666666666664), -0.9968656391728571, (0, -10), 0.029402136823219068), [0.33047213757587385, 0.4162200712338514, 0.19614410158370602, 0.001988769978834718, 7.602018447426495, 0.5364418966125286, 4.025083782376916], 0, 5, 0, 1.597310996910813e9), (0.0002010274938093588, -0.9970666666666664))], BlackBoxOptim.EpsBoxDominanceFitnessScheme{2,Float64,true,typeof(sum)}([0.1, 0.1], sum)), BlackBoxOptim.DummyMethodOutput())</pre><p>With the optimized parameters, about 0.3% of the population dies and 0.02% are infected:</p><pre><code class="language-julia">best_fitness(result)</code></pre><pre class="documenter-example-output">(0.0002010274938093588, -0.9970666666666664)</pre><p>And the tuned parameters are</p><pre><code class="language-julia">best_candidate(result)</code></pre><pre class="documenter-example-output">7-element Array{Float64,1}:
+)</code></pre><pre class="documenter-example-output">BlackBoxOptim.OptimizationResults(&quot;borg_moea&quot;, &quot;Max time (55.0 s) reached&quot;, 1, 1.597326505456005e9, 63.777060985565186, BlackBoxOptim.DictChain{Symbol,Any}[BlackBoxOptim.DictChain{Symbol,Any}[Dict{Symbol,Any}(:RngSeed =&gt; 774292,:NumDimensions =&gt; 7,:MaxTime =&gt; 55.0,:SearchRange =&gt; [(0.0, 1.0), (0.0, 1.0), (0.0, 1.0), (0.0, 1.0), (7.0, 13.0), (0.0, 1.0), (2.0, 6.0)],:Method =&gt; :borg_moea,:FitnessScheme =&gt; BlackBoxOptim.ParetoFitnessScheme{2,Float64,true,typeof(sum)}(sum),:MaxFuncEvals =&gt; 0,:MaxSteps =&gt; 0),Dict{Symbol,Any}()],Dict{Symbol,Any}(:FitnessScheme =&gt; BlackBoxOptim.ScalarFitnessScheme{true}(),:NumDimensions =&gt; :NotSpecified,:PopulationSize =&gt; 50,:MaxTime =&gt; 0.0,:SearchRange =&gt; (-1.0, 1.0),:Method =&gt; :adaptive_de_rand_1_bin_radiuslimited,:MaxNumStepsWithoutFuncEvals =&gt; 100,:RngSeed =&gt; 1234,:MaxFuncEvals =&gt; 0,:SaveTrace =&gt; false…)], 51, BlackBoxOptim.EpsBoxDominanceFitnessScheme{2,Float64,true,typeof(sum)}([0.1, 0.1], sum), BlackBoxOptim.EpsBoxArchiveOutput{2,Float64,BlackBoxOptim.EpsBoxDominanceFitnessScheme{2,Float64,true,typeof(sum)}}((0.0002010274938093588, -0.9970666666666664), [0.33047213757587385, 0.4162200712338514, 0.19614410158370602, 0.001988769978834718, 7.602018447426495, 0.5364418966125286, 4.025083782376916], BlackBoxOptim.FrontierIndividualWrapper{Tuple{Float64,Float64},BlackBoxOptim.IndexedTupleFitness{2,Float64}}[BlackBoxOptim.FrontierIndividualWrapper{Tuple{Float64,Float64},BlackBoxOptim.IndexedTupleFitness{2,Float64}}(BlackBoxOptim.FrontierIndividual{BlackBoxOptim.IndexedTupleFitness{2,Float64}}(BlackBoxOptim.IndexedTupleFitness{2,Float64}((0.0002010274938093588, -0.9970666666666664), -0.9968656391728571, (0, -10), 0.029402136823219068), [0.33047213757587385, 0.4162200712338514, 0.19614410158370602, 0.001988769978834718, 7.602018447426495, 0.5364418966125286, 4.025083782376916], 0, 5, 0, 1.597326512750759e9), (0.0002010274938093588, -0.9970666666666664))], BlackBoxOptim.EpsBoxDominanceFitnessScheme{2,Float64,true,typeof(sum)}([0.1, 0.1], sum)), BlackBoxOptim.DummyMethodOutput())</pre><p>With the optimized parameters, about 0.3% of the population dies and 0.02% are infected:</p><pre><code class="language-julia">best_fitness(result)</code></pre><pre class="documenter-example-output">(0.0002010274938093588, -0.9970666666666664)</pre><p>And the tuned parameters are</p><pre><code class="language-julia">best_candidate(result)</code></pre><pre class="documenter-example-output">7-element Array{Float64,1}:
  0.33047213757587385
  0.4162200712338514
  0.19614410158370602
@@ -167,4 +129,4 @@ end</code></pre><pre class="documenter-example-output">cost_multi (generic funct
  0.5364418966125286
  4.025083782376916</pre><p>The algorithm managed to minimize the the number of infected and deaths while still increasing death rate to 42%, reinfection probability to 53%, and migration rates to 33%. The most important change decreasing the transmission rate when individuals are infected and undetected (from 30% to 0.2%).</p><p>Let&#39;s reduce death rate and check the cost:</p><pre><code class="language-julia">x = best_candidate(result)
 x[2] = 0.02
-cost_multi(x)</code></pre><pre class="documenter-example-output">(0.00046675567423230975, -0.9996666666666666)</pre><p>The fraction of infected increases to 0.04%. This is an interesting result, confirming the importance of social distancing. Without changing infection period and travel rate, even by increasing the transmission rate of the infected and detected (from 5% to 20%), by just decreasing the transmission rate of the undetected individuals, death rate drops 73 times and the number of infected decreases from 96% of the population to 3%.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../diffeq/">« DifferentialEquations.jl</a><a class="docs-footer-nextpage" href="../../mesa/">Comparison against Mesa (Python) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Thursday 13 August 2020 09:35">Thursday 13 August 2020</span>. Using Julia version 1.5.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+cost_multi(x)</code></pre><pre class="documenter-example-output">(0.00046675567423230975, -0.9996666666666666)</pre><p>The fraction of infected increases to 0.04%. This is an interesting result, confirming the importance of social distancing. Without changing infection period and travel rate, even by increasing the transmission rate of the infected and detected (from 5% to 20%), by just decreasing the transmission rate of the undetected individuals, death rate drops 73 times and the number of infected decreases from 96% of the population to 3%.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../diffeq/">« DifferentialEquations.jl</a><a class="docs-footer-nextpage" href="../../mesa/">Comparison against Mesa (Python) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Thursday 13 August 2020 13:53">Thursday 13 August 2020</span>. Using Julia version 1.5.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
