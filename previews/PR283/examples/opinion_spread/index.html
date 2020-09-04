@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Opinion spread · Agents.jl</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="https://fonts.googleapis.com/css?family=Montserrat|Source+Code+Pro&amp;display=swap" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.png" alt="Agents.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit">Agents.jl</span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><a class="tocitem" href="../../tutorial/">Tutorial</a></li><li><input class="collapse-toggle" id="menuitem-3" type="checkbox" checked/><label class="tocitem" for="menuitem-3"><span class="docs-label">Examples</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../schelling/">Schelling&#39;s segregation model</a></li><li><a class="tocitem" href="../sir/">SIR model for the spread of COVID-19</a></li><li><a class="tocitem" href="../social_distancing/">Continuous space social distancing for COVID-19</a></li><li><a class="tocitem" href="../wealth_distribution/">Wealth distribution</a></li><li><a class="tocitem" href="../forest_fire/">Forest fire</a></li><li><a class="tocitem" href="../game_of_life_2D_CA/">Conway&#39;s game of life</a></li><li><a class="tocitem" href="../wright-fisher/">Wright-Fisher model of evolution</a></li><li><a class="tocitem" href="../hk/">Hegselmann-Krause opinion dynamics</a></li><li><a class="tocitem" href="../flock/">Flocking</a></li><li><a class="tocitem" href="../daisyworld/">Daisyworld</a></li><li><a class="tocitem" href="../predator_prey/">Predator-Prey</a></li><li><a class="tocitem" href="../growing_bacteria/">Bacteria Growth</a></li><li class="is-active"><a class="tocitem" href>Opinion spread</a><ul class="internal"><li><a class="tocitem" href="#Building-the-model"><span>Building the model</span></a></li><li><a class="tocitem" href="#Running-the-model"><span>Running the model</span></a></li><li><a class="tocitem" href="#Plotting"><span>Plotting</span></a></li></ul></li></ul></li><li><a class="tocitem" href="../../models/">Predefined Models</a></li><li><a class="tocitem" href="../../api/">API</a></li><li><a class="tocitem" href="../../interact/">Interactive application</a></li><li><input class="collapse-toggle" id="menuitem-7" type="checkbox"/><label class="tocitem" for="menuitem-7"><span class="docs-label">Ecosystem Integration</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../diffeq/">DifferentialEquations.jl</a></li><li><a class="tocitem" href="../optim/">BlackBoxOptim</a></li></ul></li><li><a class="tocitem" href="../../mesa/">Comparison against Mesa (Python)</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Opinion spread</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Opinion spread</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaDynamics/Agents.jl/blob/master/examples/opinion_spread.jl" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Opinion-spread"><a class="docs-heading-anchor" href="#Opinion-spread">Opinion spread</a><a id="Opinion-spread-1"></a><a class="docs-heading-anchor-permalink" href="#Opinion-spread" title="Permalink"></a></h1><p><img src="opinion.gif" alt/></p><p>This is a simple model of how an opinion spreads through a community. Each individual has a number of opinions as a list of integers. They can change their opinion by changing the numbers in the list.</p><p>Agents can change their opinion at each step. They choose one of their neighbors randomly, and adopt one of the neighbor&#39;s opinion. They are more likely to adopt their neighbors opinion if the share more opinions with each other.</p><pre><code class="language-julia">using Agents
+using AgentsPlots
+using Random</code></pre><h2 id="Building-the-model"><a class="docs-heading-anchor" href="#Building-the-model">Building the model</a><a id="Building-the-model-1"></a><a class="docs-heading-anchor-permalink" href="#Building-the-model" title="Permalink"></a></h2><h3 id=".-Model-creation"><a class="docs-heading-anchor" href="#.-Model-creation">1. Model creation</a><a id=".-Model-creation-1"></a><a class="docs-heading-anchor-permalink" href="#.-Model-creation" title="Permalink"></a></h3><pre><code class="language-julia">mutable struct Citizen &lt;: AbstractAgent
+	id::Int
+	pos::Tuple{Int, Int}
+	stabilized::Bool
+	opinion::Array{Int, 1}
+	prev_opinion::Array{Int, 1}
+end
+
+function create_model(;dims=(10, 10), nopinions=3, levels_per_opinion=4)
+	space = GridSpace(dims, periodic=true, moore=true)
+	properties = Dict(:nopinions=&gt;nopinions)
+	model = AgentBasedModel(Citizen, space, scheduler=random_activation, properties=properties)
+	for cell in 1:nv(model)
+		add_agent!(cell, model, false, rand(1:levels_per_opinion, nopinions), rand(1:levels_per_opinion, nopinions))
+	end
+	return model
+end</code></pre><pre class="documenter-example-output">create_model (generic function with 1 method)</pre><h3 id=".-Stepping-functions"><a class="docs-heading-anchor" href="#.-Stepping-functions">2. Stepping functions</a><a id=".-Stepping-functions-1"></a><a class="docs-heading-anchor-permalink" href="#.-Stepping-functions" title="Permalink"></a></h3><pre><code class="language-">function adopt!(agent, model)
+	neighbor = rand(space_neighbors(agent, model))
+	matches = model[neighbor].opinion .== agent.opinion
+	nmatches = count(matches)</code></pre><p>Adopt a different opinion w/ calculated probability</p><pre><code class="language-">	if nmatches &lt; model.nopinions &amp;&amp; rand() &lt; nmatches/model.nopinions
+		switchId = rand(findall(x-&gt; x==false, matches))
+		agent.opinion[switchId] = model[neighbor].opinion[switchId]
+	end
+end
+
+function update_prev_opinion!(agent, model)
+	for i in 1:model.nopinions
+		agent.prev_opinion[i] = agent.opinion[i]
+	end
+end
+
+function is_stabilized!(agent, model)
+	if agent.prev_opinion == agent.opinion
+		agent.stabilized = true
+	else
+		agent.stabilized = false
+	end
+end
+
+function agent_step!(agent, model)
+	update_prev_opinion!(agent, model)
+	adopt!(agent, model)
+	is_stabilized!(agent, model)
+end</code></pre><h2 id="Running-the-model"><a class="docs-heading-anchor" href="#Running-the-model">Running the model</a><a id="Running-the-model-1"></a><a class="docs-heading-anchor-permalink" href="#Running-the-model" title="Permalink"></a></h2><pre><code class="language-">levels_per_opinion=4
+model = create_model(nopinions=3,levels_per_opinion=levels_per_opinion)
+
+&quot;run the model until all agents stabilize&quot;
+rununtil(model, s) = count(getproperty.(values(model.agents), :stabilized)) == prod(model.space.dimensions)
+
+agentdata, _ = run!(model, agent_step!, dummystep, rununtil, adata=[(:stabilized, count)])</code></pre><h2 id="Plotting"><a class="docs-heading-anchor" href="#Plotting">Plotting</a><a id="Plotting-1"></a><a class="docs-heading-anchor-permalink" href="#Plotting" title="Permalink"></a></h2><p>The plot shows the number of stable agents, that is, number of agents whose opinions don&#39;t change from one step to the next. Note that the number of stable agents can fluctuate before the final convergence.</p><pre><code class="language-">plot(1:size(agentdata, 1), agentdata.count_stabilized, legend=false, xlabel=&quot;generation&quot;, ylabel=&quot;# of stabilized agents&quot;)</code></pre><h3 id="Animation"><a class="docs-heading-anchor" href="#Animation">Animation</a><a id="Animation-1"></a><a class="docs-heading-anchor-permalink" href="#Animation" title="Permalink"></a></h3><p>Here is an animation that shows change of agent opinions over time. The first three opinions of an agent determines its color in RGB.</p><pre><code class="language-">levels_per_opinion = 3
+ac(agent) = RGB((agent.opinion[1:3] ./ levels_per_opinion)...)
+model = create_model(nopinions=3, levels_per_opinion=levels_per_opinion)
+anim = @animate for sp in 1:500
+  step!(model, agent_step!)
+  p = plotabm(model, ac=ac, as=12, am=:square)
+  title!(p, &quot;Step $(sp)&quot;)
+  if rununtil(model, 1)
+    break
+  end
+end
+gif(anim, &quot;opinion.gif&quot;)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../growing_bacteria/">« Bacteria Growth</a><a class="docs-footer-nextpage" href="../../models/">Predefined Models »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Friday 4 September 2020 09:01">Friday 4 September 2020</span>. Using Julia version 1.5.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
