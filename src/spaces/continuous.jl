@@ -198,7 +198,7 @@ function nearby_ids(pos::ValidPos, model::ABM{<:ContinuousSpace{D,A,T}}, r = 1;
     end
     # Calculate maximum grid distance (distance + distance from cell center)
     δ = distance_from_cell_center(pos, cell_center(pos, model))
-    grid_r = (r + δ) / model.space.spacing
+    grid_r = (r + δ) / (model.space.spacing/2)
     # Then return the ids within this distance, using the internal grid space
     # and iteration via `GridSpaceIdIterator`, see spaces/grid_multi.jl
     focal_cell = pos2cell(pos, model)
