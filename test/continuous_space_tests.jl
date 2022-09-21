@@ -108,6 +108,63 @@ using StableRNGs
         end
     end
 
+    @testset "nearby ids #684 fix" begin
+        @testset "exactly matches #684" begin
+            mutable struct TestAgent <: AbstractAgent
+                id::Int
+                pos::NTuple{2,Float64}
+            end
+            
+            distance(a1::TestAgent,a2::TestAgent) = let δ = a1.pos .- a2.pos
+                hypot(δ...)
+            end
+            
+            positions = [
+            (122.91984594569145, 129.27537099976024),
+            (119.8316511853557, 120.63347075797228),
+            (120.88133497820543, 122.44001918308183),
+            (118.33581146746528, 121.94704974817539),
+            (120.22776179237353, 121.74193334411757)]
+            
+            space = ContinuousSpace((300,300),periodic=false)
+            model = ABM(TestAgent, space)
+            
+            for i in positions
+                add_agent!(i,model)
+            end
+
+            r = 2
+            expected_nearby_ids_for_agent_5 = []
+            for a in 1:4
+                d = distance(model[5],model[a])
+                d < r && push!(expected_nearby_ids_for_agent_5, a)
+            end
+            # Distance between 5 and 1: 8.000000000000027
+            # Distance between 5 and 2: 1.1771121093064787
+            # Distance between 5 and 3: 0.9562853903521156
+            # Distance between 5 and 4: 1.9030367235379475
+            
+            @test Set(collect(Agents.nearby_ids_exact(model[5], model, r))) == Set(expected_nearby_ids_for_agent_5)
+            for i in expected_nearby_ids_for_agent_5
+                @test i in collect(Agents.nearby_ids(model[5],model,2)) 
+            end
+
+            ## Exact results shouldn't change; inexact might
+            positions = [i .- 100 for i in positions]
+            r = 2
+            expected_nearby_ids_for_agent_5 = []
+            for a in 1:4
+                d = distance(model[5],model[a])
+                d < r && push!(expected_nearby_ids_for_agent_5, a)
+            end
+            @test Set(collect(Agents.nearby_ids_exact(model[5], model, r))) == Set(expected_nearby_ids_for_agent_5)
+            for i in expected_nearby_ids_for_agent_5
+                @test i in collect(Agents.nearby_ids(model[5],model,2)) 
+            end
+
+        end
+    end
+
 
     @testset "Interacting pairs" begin
         @testset "standard" begin
