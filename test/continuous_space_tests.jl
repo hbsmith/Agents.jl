@@ -134,32 +134,127 @@ using StableRNGs
             end
 
             r = 2
-            expected_nearby_ids_for_agent_5 = []
+            expected_nearby_ids_exact_for_agent_5 = []
             for a in 1:4
                 d = distance(model[5],model[a])
-                d < r && push!(expected_nearby_ids_for_agent_5, a)
+                d < r && push!(expected_nearby_ids_exact_for_agent_5, a)
             end
             # Distance between 5 and 1: 8.000000000000027
             # Distance between 5 and 2: 1.1771121093064787
             # Distance between 5 and 3: 0.9562853903521156
             # Distance between 5 and 4: 1.9030367235379475
             
-            @test Set(collect(Agents.nearby_ids_exact(model[5], model, r))) == Set(expected_nearby_ids_for_agent_5)
-            for i in expected_nearby_ids_for_agent_5
+            ## Exact test
+            @test Set(expected_nearby_ids_exact_for_agent_5) == Set([2,3,4])
+            @test Set(collect(Agents.nearby_ids_exact(model[5], model, r))) == Set(expected_nearby_ids_exact_for_agent_5)
+            ## Inexact test
+            for i in expected_nearby_ids_exact_for_agent_5
                 @test i in collect(Agents.nearby_ids(model[5],model,2)) 
             end
 
-            ## Exact results shouldn't change; inexact might
+
+            ## Shift positions; exact results shouldn't change; inexact might
             positions = [i .- 100 for i in positions]
             r = 2
-            expected_nearby_ids_for_agent_5 = []
+            expected_nearby_ids_exact_for_agent_5 = []
             for a in 1:4
                 d = distance(model[5],model[a])
-                d < r && push!(expected_nearby_ids_for_agent_5, a)
+                d < r && push!(expected_nearby_ids_exact_for_agent_5, a)
             end
-            @test Set(collect(Agents.nearby_ids_exact(model[5], model, r))) == Set(expected_nearby_ids_for_agent_5)
-            for i in expected_nearby_ids_for_agent_5
+
+            ## Exact test
+            @test Set(expected_nearby_ids_exact_for_agent_5) == Set([2,3,4])
+            @test Set(collect(Agents.nearby_ids_exact(model[5], model, r))) == Set(expected_nearby_ids_exact_for_agent_5)
+            ## Inexact test
+            for i in expected_nearby_ids_exact_for_agent_5
                 @test i in collect(Agents.nearby_ids(model[5],model,2)) 
+            end
+
+        end
+        @testset "nearby in corner of cell" begin
+            mutable struct TestAgent <: AbstractAgent
+                id::Int
+                pos::NTuple{2,Float64}
+            end
+            
+            distance(a1::TestAgent,a2::TestAgent) = let δ = a1.pos .- a2.pos
+                hypot(δ...)
+            end
+            
+            positions = [
+            (1.01, 1.01),
+            (1.01, 0.99),
+            (0.99, 1.01),
+            (1.9, 1.9),
+            (0.5, 0.5),
+            (0.1, 2.3),
+            (1.5,2.1),
+            (2.99,2.99),
+            (3.01,3.01),
+            (1.01,3.01),
+            (3.5,0.5),
+            (3.5,1.5),
+            (3.5,2.5)]
+            
+            space = ContinuousSpace((10,10),spacing=1,periodic=false)
+            model = ABM(TestAgent, space)
+            
+            for i in positions
+                add_agent!(i,model)
+            end
+
+            @testset "radius overlaps cells by r < cell_r" begin
+                r = 0.03
+                expected_nearby_ids_exact_for_agent_1 = []
+                for a in 2:13
+                    d = distance(model[1],model[a])
+                    d < r && push!(expected_nearby_ids_exact_for_agent_1, a)
+                end
+                ## Exact test
+                @test Set(expected_nearby_ids_exact_for_agent_1) == Set([2,3])
+                @test Set(collect(Agents.nearby_ids_exact(model[1], model, r))) == Set(expected_nearby_ids_exact_for_agent_1)
+
+                ## Inexact test
+                expected_nearby_ids_inexact_for_agent_1 = collect(2:8) ## all within the 8 cell squares surrounding 1's cell square
+                @test Set(collect(Agents.nearby_ids(model[1], model, r))) == Set(expected_nearby_ids_inexact_for_agent_1)
+            end
+
+            @testset "radius overlaps cells by r > cell_r" begin
+                r = 0.75
+                expected_nearby_ids_exact_for_agent_1 = []
+                for a in 2:13
+                    d = distance(model[1],model[a])
+                    d < r && push!(expected_nearby_ids_exact_for_agent_1, a)
+                    # @show a
+                    # @show d
+                    # println("---")
+                end
+                ## Exact test
+                @test Set(expected_nearby_ids_exact_for_agent_1) == Set([2,3,5])
+                @test Set(collect(Agents.nearby_ids_exact(model[1], model, r))) == Set(expected_nearby_ids_exact_for_agent_1)
+
+                ## Inexact test
+                expected_nearby_ids_inexact_for_agent_1 = collect(2:8) ## all within the 8 cell squares surrounding 1's cell square
+                @test Set(collect(Agents.nearby_ids(model[1], model, r))) == Set(expected_nearby_ids_inexact_for_agent_1)
+            end
+
+            @testset "radius within focus cell, r+δ > r_cell" begin
+                r = 0.01
+                expected_nearby_ids_exact_for_agent_1 = []
+                for a in 2:13
+                    d = distance(model[1],model[a])
+                    d < r && push!(expected_nearby_ids_exact_for_agent_1, a)
+                    @show a
+                    @show d
+                    println("---")
+                end
+                ## Exact test
+                @test Set(expected_nearby_ids_exact_for_agent_1) == Set([])
+                @test Set(collect(Agents.nearby_ids_exact(model[1], model, r))) == Set(expected_nearby_ids_exact_for_agent_1)
+
+                ## Inexact test
+                expected_nearby_ids_inexact_for_agent_1 = [2,3,4,7] ## all within the 8 cell squares surrounding 1's cell square
+                @test Set(collect(Agents.nearby_ids(model[1], model, r))) == Set(expected_nearby_ids_inexact_for_agent_1)
             end
 
         end
