@@ -201,7 +201,7 @@ using StableRNGs
             id::Int
             pos::NTuple{2,Float64}
             vel::NTuple{2,Float64}
-            f1::Union{Int,Nothing}
+            nn::Union{Int,Nothing,Vector{Int}}
         end
         space = ContinuousSpace((1,1); spacing = 0.1, periodic = true)
         model = ABM(AgentNNContinuous, space)
@@ -211,13 +211,24 @@ using StableRNGs
         end
 
         for agent in allagents(model)
-            agent.f1 = nearest_neighbor(agent, model, sqrt(2)).id
+            agent.nn = nearest_neighbor(agent, model, sqrt(2)).id
         end
 
-        @test model[1].f1 == 2
-        @test model[2].f1 == 1
-        @test model[3].f1 == 2
-        @test model[4].f1 == 3
+        @test model[1].nn == 2
+        @test model[2].nn in [1,3] ## These are tied
+        @test model[3].nn == 2
+        @test model[4].nn == 3
+
+        
+        for agent in allagents(model)
+            agent.nn = [a.id for a in nearest_neighbor(agent, model, sqrt(2), find_ties=true)]
+        end
+
+        @test model[1].nn == [2]
+        @test Set(model[2].nn) == Set([1,3]) ## These are tied
+        @test model[3].nn == [2]
+        @test model[4].nn == [3]
+
     end
 
     @testset "walk" begin
