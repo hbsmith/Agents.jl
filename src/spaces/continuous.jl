@@ -276,27 +276,20 @@ nearby_agents_exact(a, model, r=1) = (model[id] for id in nearby_ids_exact(a, mo
     nearest_neighbor(agent, model::ABM{<:ContinuousSpace}, r) → nearest
 Return the agent that has the closest distance to given `agent`.
 Return `nothing` if no agent is within distance `r`.
-If `find_ties = false`, returns only one closest agent (ignores ties), otherwise
-returns a vector of tied closest agents.
-
 """
-function nearest_neighbor(agent::A, model::ABM{<:ContinuousSpace,A}, r; find_ties=false) where {A}
-    n = unique(nearby_ids(agent, model, r))
-    d, j = Inf, Int[]
+function nearest_neighbor(agent::A, model::ABM{<:ContinuousSpace,A}, r) where {A}
+    n = nearby_ids(agent, model, r)
+    d, j = Inf, 0
     for id in n
         dnew = euclidean_distance(agent.pos, model[id].pos, model)
         if dnew < d
-            d, j = dnew, [id]
-        elseif dnew == d
-            push!(j, id)
+            d, j = dnew, id
         end
     end
     if d == Inf
         return nothing
-    elseif find_ties==false
-        return model[j[1]]
     else
-        return [model[id] for id in j]
+        return model[j]
     end
 end
 
