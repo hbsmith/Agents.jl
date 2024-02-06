@@ -93,7 +93,8 @@ function paramscan(
     if include_constants
         output_params = collect(keys(parameters))
     else
-        output_params = [k for (k, v) in parameters if typeof(v) <: Vector]
+        print("Modified paramscan...")
+        output_params = [k for (k, v) in parameters if typeof(v) <: Vector && length(v)>1]
     end
 
     combs = dict_list(parameters)
